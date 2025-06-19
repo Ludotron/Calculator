@@ -2,6 +2,7 @@
 const displayArea = document.querySelector("#displayArea");
 const buttonsContainer = document.querySelector("#buttonsContainer");
 const buttonClear = document.querySelector("#bClear");
+const buttonUndo = document.querySelector("#bUndo");
 const button1 = document.querySelector("#b1");
 const button2 = document.querySelector("#b2");
 const button3 = document.querySelector("#b3");
@@ -74,7 +75,6 @@ function handleClick(me) {
             break;
         }
         case buttonAdd: {
-            console.log("not here ???");
             tick(ADD);
             break;
         }
@@ -82,13 +82,116 @@ function handleClick(me) {
             tick(EQUAL);
             break;
         }
+        case buttonDot: {
+            if (!willSkipButtonDot) {
+                tick(DOT);
+            }
+            break;
+        }
         case buttonClear: {
             reset();
+            break;
+        }
+        case buttonUndo: {
+            undo();
             break;
         }
     }
 };
 buttonsContainer.addEventListener("click", handleClick);
+function handleKey(ke) {
+    switch (ke.key) {
+        case "0": {
+            tick("0");
+            break;
+        }
+        case "1": {
+            tick("1");
+            break;
+        }
+        case "2": {
+            tick("2");
+            break;
+        }
+        case "3": {
+            tick("3");
+            break;
+        }
+        case "4": {
+            tick("4");
+            break;
+        }
+        case "5": {
+            tick("5");
+            break;
+        }
+        case "6": {
+            tick("6");
+            break;
+        }
+        case "7": {
+            tick("7");
+            break;
+        }
+        case "8": {
+            tick("8");
+            break;
+        }
+        case "9": {
+            tick("9");
+            break;
+        }
+        case "/": {
+            tick(DIVIDE);
+            break;
+        }
+        case "*": {
+            tick(MULTIPLY);
+            break;
+        }
+        case "-": {
+            tick(SUBSTRACT);
+            break;
+        }
+        case "+": {
+            tick(ADD);
+            break;
+        }
+        case "=": {
+            tick(EQUAL);
+            break;
+        }
+        case "Enter": {
+            tick(EQUAL);
+            break;
+        }
+        case ".": {
+            if (!willSkipButtonDot) {
+                tick(DOT);
+            }
+            break;
+        }
+        case "c": {
+            reset();
+            break;
+        }
+        case "u": {
+            undo();
+            break;
+        }
+    }
+}
+document.addEventListener("keyup", handleKey);
+
+let willSkipButtonDot = false;
+function turnButtonDotOn() {
+    buttonDot.classList.remove("isDisable");
+    willSkipButtonDot = false;
+}
+function turnButtonDotOff() {
+    buttonDot.classList.add("isDisable");
+    willSkipButtonDot = true;
+}
 
 //Operation logics :
 function add(x, y) {
@@ -143,23 +246,44 @@ function applyOperation() {
 const STATE_INPUTING_OPERAND1 = "SIO1";
 const STATE_INPUTING_OPERAND2 = "SIO2";
 let state = STATE_INPUTING_OPERAND1;
-
+//Allow the result of a previous operation to be used as operand1 of the current operation.
+//Reset le whole operand1 if the user enter a new number instead of an operation.
+let isChainingOperation = false;
 function tick(value) {
     switch (state) {
         case STATE_INPUTING_OPERAND1: {
-            if(error) {
+            if (error) {
                 clearError();
             }
             if (!isNaN(Number(value))) {
+                if (isChainingOperation) {
+                    operand1 = "";
+                    isChainingOperation = false;
+                }
                 if (operand1 == "") {
                     operand1 = value;
                 } else {
                     operand1 = operand1 + value;
                 }
             }
+            if (value == DOT) {
+                if (isChainingOperation) {
+                    operand1 = "";
+                    isChainingOperation = false;
+                }
+                if (operand1 == "") {
+                    operand1 = "0.";
+                } else {
+                    operand1 = operand1 + ".";
+                }
+                turnButtonDotOff();
+            }
             if (operand1 != "") {
-                if (value == ADD | value == SUBSTRACT | value == MULTIPLY | value == DIVIDE) {
+                if (value == ADD || value == SUBSTRACT || value == MULTIPLY || value == DIVIDE) {
                     operation = value;
+                    if (willSkipButtonDot) {
+                        turnButtonDotOn();
+                    }
                     state = STATE_INPUTING_OPERAND2;
                 }
             }
@@ -173,25 +297,37 @@ function tick(value) {
                     operand2 = operand2 + value;
                 }
             }
+            if (value == DOT) {
+                if (operand2 == "") {
+                    operand2 = "0.";
+                } else {
+                    operand2 = operand2 + ".";
+                }
+                turnButtonDotOff();
+            }
             if (operand2 == "") {
                 //Change the operation actually :
-                if (value == ADD | value == SUBSTRACT | value == MULTIPLY | value == DIVIDE) {
+                if (value == ADD || value == SUBSTRACT || value == MULTIPLY || value == DIVIDE) {
                     operation = value;
                 }
             } else {
                 //Pressing operation button or equal will make operation to apply :
-                if (value == ADD | value == SUBSTRACT | value == MULTIPLY | value == DIVIDE) {
+                if (value == ADD || value == SUBSTRACT || value == MULTIPLY || value == DIVIDE) {
                     if (operation == DIVIDE && Number(operand2) == 0) {
                         setError(ERROR_D_BY_0);
                         clearOperandsAndOperands();
                         state = STATE_INPUTING_OPERAND1;
-                        
                     } else {
                         let result = applyOperation();
                         clearOperandsAndOperands();
-                        operand1 = result;
+                        operand1 = result.toString();
                         operation = value;
                         state = STATE_INPUTING_OPERAND2;
+                    }
+                    if (operand1 != "" && Number.isInteger(Number(operand1))) {
+                        if (willSkipButtonDot) {
+                            turnButtonDotOn();
+                        }
                     }
                 }
                 if (value == EQUAL) {
@@ -201,7 +337,11 @@ function tick(value) {
                     } else {
                         let result = applyOperation();
                         clearOperandsAndOperands();
-                        operand1 = result;
+                        operand1 = result.toString();
+                        isChainingOperation = true;
+                    }
+                    if (willSkipButtonDot) {
+                        turnButtonDotOn();
                     }
                     state = STATE_INPUTING_OPERAND1;
                 }
@@ -222,6 +362,7 @@ function clearError(message) {
 function hasError() {
     return ((error != undefined) ? true : false);
 }
+const NUMBER_OF_DECIMALS = 5;
 function displayExpression() {
     let text = "";
     if (hasError()) {
@@ -252,6 +393,40 @@ function displayExpression() {
 }
 function reset() {
     clearOperandsAndOperands();
+    clearError();
+    if (willSkipButtonDot) {
+        turnButtonDotOn();
+    }
     displayExpression();
     state = STATE_INPUTING_OPERAND1;
+}
+function undo() {
+    switch (state) {
+        case STATE_INPUTING_OPERAND1: {
+            if (operand1 != "") {
+                operand1 = operand1.slice(0, -1);
+                if (willSkipButtonDot) {
+                    if (Number.isInteger(Number(operand1)) && operand1.charAt(operand1.length - 1) != ".") {
+                        turnButtonDotOn();
+                    }
+                }
+            }
+            break;
+        }
+        case STATE_INPUTING_OPERAND2: {
+            if (operand2 != "") {
+                operand2 = operand2.slice(0, -1);
+                if (willSkipButtonDot) {
+                    if (Number.isInteger(Number(operand2)) && operand1.charAt(operand1.length - 1) != ".") {
+                        turnButtonDotOn();
+                    }
+                }
+            } else if (operation != undefined) {
+                operation = undefined;
+                state = STATE_INPUTING_OPERAND1;
+            }
+            break;
+        }
+    }
+    displayExpression();
 }

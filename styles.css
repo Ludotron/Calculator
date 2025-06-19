@@ -22,14 +22,14 @@ body {
 
 #displayArea {
     color: darkblue;
-    margin: 10px;
+    margin: 16px;
     font-family: 'Courier New', Courier, monospace;
     font-size: 3rem;
 }
 
 #buttonsContainer {
     display: flex;
-    justify-content: space-evenly;
+    justify-content: space-between;
 }
 
 .button {
@@ -45,6 +45,10 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.isDisable {
+    background-color: lightgray;
 }
 
 .operator {
